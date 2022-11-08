@@ -1,80 +1,45 @@
 use nannou::prelude::*;
-use nannou::rand::rngs::StdRng;
-use nannou::rand::{Rng, SeedableRng};
+use nannou::image::{RgbImage, DynamicImage, Rgb};
 
-const ROWS: u32 = 22;
-const COLS: u32 = 12;
-const SIZE: u32 = 30;
-const MARGIN: u32 = 35;
-const WIDTH: u32 = COLS * SIZE + 2 * MARGIN;
-const HEIGHT: u32 = ROWS * SIZE + 2 * MARGIN;
-const LINE_WIDTH: f32 = 0.06;
+const SCREEN_WIDTH: u32 = 400;
+const SCREEN_HEIGHT: u32 = 400;
 
 fn main() {
     nannou::app(model)
         .update(update)
-        .loop_mode(LoopMode::wait())
         .run();
 }
 
 struct Model {
-    random_seed: u64,
 }
 
 fn model(app: &App) -> Model {
     app.new_window()
         .title(app.exe_name().unwrap())
-        .size(WIDTH, HEIGHT)
+        .size(SCREEN_WIDTH, SCREEN_HEIGHT)
         .view(view)
-        .key_pressed(key_pressed)
         .build()
         .unwrap();
-
-    let random_seed = random_range(0, 1_000_000);
-    Model{
-        random_seed,
-    }
-}
-
-fn key_pressed(_app: &App, model: &mut Model, key: Key) {
-    match key {
-        Key::R => {
-            model.random_seed = random_range(0, 1_000_000);
-        }
-        _other_key => {}
-    }
+    Model{}
 }
 
 fn update(_app: &App, _model: &mut Model, _update: Update) {
 }
 
-fn view(app: &App, model: &Model, frame: Frame) {
-    let mut rng = StdRng::seed_from_u64(model.random_seed);
-
+fn view(app: &App, _model: &Model, frame: Frame) {
     let draw = app.draw();
-    let gdraw = draw.scale(SIZE as f32)
-                    .scale_y(-1.0)
-                    .x_y(COLS as f32 / -2.0 + 0.5, ROWS as f32 / -2.0 + 0.5);
+    let mut img = RgbImage::new(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    draw.background().color(PLUM);
-
-    for y in 0..ROWS {
-        for x in 0..COLS {
-            let cdraw = gdraw.x_y(x as f32, y as f32);
-            let factor = y as f32 / ROWS as f32;
-            let x_offset = factor * rng.gen_range(-0.5..0.5);
-            let y_offset = factor * rng.gen_range(-0.5..0.5);
-            let rotation = factor * rng.gen_range(-PI * 4.0..PI / 4.0);
-
-            cdraw.rect()
-                .no_fill()
-                .stroke(BLACK)
-                .stroke_weight(LINE_WIDTH)
-                .w_h(1.0, 1.0)
-                .x_y(x_offset, y_offset)
-                .rotate(rotation);
+    for x in 15..=17 {
+        for y in 8..24 {
+            img.put_pixel(x, y, Rgb([255, 0, 0]));
+            img.put_pixel(y, x, Rgb([255, 0, 0]));
         }
     }
 
+
+    let img = DynamicImage::ImageRgb8(img);
+    let texture = wgpu::Texture::from_image(app, &img);
+    draw.texture(&texture);
     draw.to_frame(app, &frame).unwrap();
 }
